@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use image::{Rgb, RgbImage};
 use imageproc::drawing::draw_filled_rect;
 use imageproc::rect::Rect;
@@ -6,6 +6,19 @@ use log::info;
 use rust_htslib::{bam, bam::Read, htslib};
 use std::collections::HashMap;
 use std::path::PathBuf;
+
+pub mod axis_ticks;
+pub mod identity;
+pub mod utils;
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum Color {
+    Red,
+    Green,
+    Blue,
+    Purple,
+    Yellow,
+}
 
 // The arguments end up in the Cli struct
 #[derive(Parser, Debug)]
@@ -22,6 +35,10 @@ struct Cli {
     /// Output file name
     #[arg(short, long, value_parser, default_value_t = String::from("accuracy_heatmap.png"))]
     output: String,
+
+    /// Color used for heatmap
+    #[arg(short, long, value_enum, value_parser, default_value_t = Color::Green)]
+    color: Color,
 }
 
 fn main() {
@@ -29,8 +46,8 @@ fn main() {
     let args = Cli::parse();
     is_file(&args.input).unwrap_or_else(|_| panic!("Input file {} is invalid", args.input));
     info!("Collected arguments");
-    let matrix = create_histogram(&args.input, args.threads);
-    plot_heatmap(&matrix, &args.output);
+    let histogram = create_histogram(&args.input, args.threads);
+    plot_heatmap(&histogram, args.color, &args.output);
 }
 
 fn is_file(pathname: &str) -> Result<(), String> {
@@ -42,8 +59,7 @@ fn is_file(pathname: &str) -> Result<(), String> {
     }
 }
 
-fn create_histogram(bam_file: &str, threads: usize) -> Vec<Vec<usize>> {
-    let length_bin_size = 500;
+fn create_histogram(bam_file: &str, threads: usize) -> HashMap<(usize, usize), i32> {
     let mut histogram = HashMap::new();
 
     let mut bam = bam::Reader::from_path(bam_file)
@@ -54,53 +70,49 @@ fn create_histogram(bam_file: &str, threads: usize) -> Vec<Vec<usize>> {
         .rc_records()
         .map(|r| r.expect("Failure parsing Bam file"))
         .filter(|read| read.flags() & (htslib::BAM_FUNMAP | htslib::BAM_FSECONDARY) as u16 == 0)
+        .filter(|read| read.seq_len() < utils::MAX_LENGTH)
     {
-        let length = record.seq().len();
-        let accuracy = record.mapq() as usize;
-        let binned_length = (length / length_bin_size) * length_bin_size;
+        let length = utils::transform_length(record.seq_len());
+        let error = utils::transform_accuracy(identity::gap_compressed_identity(record));
 
-        // Increment the count for the given binned length and accuracy in the histogram
-        let entry = histogram.entry((binned_length, accuracy)).or_insert(0);
-        *entry += 1;
-    }
-
-    // Determine the maximum binned length and accuracy
-    let max_binned_length = histogram.keys().map(|(length, _)| length).max().unwrap();
-    let max_accuracy = histogram
-        .keys()
-        .map(|(_, accuracy)| accuracy)
-        .max()
-        .unwrap();
-
-    // Initialize the matrix with zeros
-    let mut matrix = vec![vec![0; max_accuracy + 1]; max_binned_length + 1];
-
-    // Fill in the matrix with the counts from the histogram
-    for ((binned_length, accuracy), count) in histogram {
-        matrix[binned_length][accuracy] = count;
-    }
-
-    matrix
-}
-
-fn plot_heatmap(matrix: &Vec<Vec<usize>>, output: &str) {
-    let width = matrix.len();
-    let height = matrix[0].len();
-    let max_value = matrix
-        .iter()
-        .flat_map(|row| row.iter())
-        .cloned()
-        .max()
-        .unwrap();
-
-    let mut image = RgbImage::new(width as u32, height as u32);
-
-    for (x, row) in matrix.iter().enumerate() {
-        for (y, &value) in row.iter().enumerate() {
-            let color = Rgb([(value as f32 / max_value as f32 * 255.0) as u8, 0, 0]);
-            image = draw_filled_rect(&image, Rect::at(x as i32, y as i32).of_size(1, 1), color);
+        if error < utils::transform_accuracy(utils::MIN_IDENTITY) {
+            let entry = histogram.entry((length, error)).or_insert(0);
+            *entry += 1;
         }
     }
+    info!("Constructed hashmap for histogram");
+    histogram
+}
 
-    image.save(output).unwrap();
+fn plot_heatmap(histogram: &HashMap<(usize, usize), i32>, color: Color, output: &str) {
+    // Determine the maximum binned length and accuracy
+    let width = utils::transform_length(utils::MAX_LENGTH);
+    let height = utils::transform_accuracy(utils::MIN_IDENTITY);
+    let max_value = histogram
+        .values()
+        .max()
+        .expect("ERROR could not get max value of histogram");
+    info!(
+        "Figure will be {width}x{height} with {} colored pixels",
+        histogram.values().len()
+    );
+    let mut image = RgbImage::new(width as u32, height as u32);
+    for ((length, accuracy), count) in histogram {
+        let intensity = (*count as f32 / *max_value as f32 * 255.0) as u8;
+        let color = match color {
+            Color::Red => Rgb([intensity, 0, 0]),
+            Color::Green => Rgb([0, intensity, 0]),
+            Color::Blue => Rgb([0, 0, intensity]),
+            Color::Purple => Rgb([intensity, 0, intensity]),
+            Color::Yellow => Rgb([intensity, intensity, 0]),
+        };
+        image = draw_filled_rect(
+            &image,
+            Rect::at(*length as i32, *accuracy as i32).of_size(1, 1),
+            color,
+        );
+    }
+    image = axis_ticks::add_ticks(image);
+    info!("Saving image");
+    image.save(output).expect("Error while saving image");
 }

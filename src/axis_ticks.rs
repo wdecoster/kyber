@@ -1,0 +1,48 @@
+use image::{ImageBuffer, Rgb};
+use imageproc::{drawing::draw_filled_rect, rect::Rect};
+
+use crate::utils::{transform_accuracy, transform_length, MAX_LENGTH};
+
+pub fn add_ticks(mut image: ImageBuffer<Rgb<u8>, Vec<u8>>) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+    // add major x-axis ticks
+    for tick in &[10, 100, 1000, 10000] {
+        image = draw_filled_rect(
+            &image,
+            Rect::at(transform_length(*tick) as i32, 0).of_size(1, 6),
+            Rgb([255, 255, 255]),
+        );
+    }
+    // adding minor x-axis ticks
+    for tick in &[50, 500, 5000, 50000] {
+        image = draw_filled_rect(
+            &image,
+            Rect::at(transform_length(*tick) as i32, 0).of_size(1, 3),
+            Rgb([255, 255, 255]),
+        );
+    }
+    // add major y-axis ticks
+    for tick in &[80.0, 90.0] {
+        image = draw_filled_rect(
+            &image,
+            Rect::at(
+                transform_length(MAX_LENGTH) as i32 - 6,
+                transform_accuracy(*tick) as i32,
+            )
+            .of_size(6, 1),
+            Rgb([255, 255, 255]),
+        );
+    }
+    // add minor y-axis ticks
+    for tick in &[85.0, 95.0] {
+        image = draw_filled_rect(
+            &image,
+            Rect::at(
+                transform_length(MAX_LENGTH) as i32 - 3,
+                transform_accuracy(*tick) as i32,
+            )
+            .of_size(3, 1),
+            Rgb([255, 255, 255]),
+        );
+    }
+    image
+}
