@@ -51,6 +51,9 @@ fn main() {
 }
 
 fn is_file(pathname: &str) -> Result<(), String> {
+    if pathname == "-" {
+        return Ok(());
+    }
     let path = PathBuf::from(pathname);
     if path.is_file() {
         Ok(())
@@ -61,9 +64,12 @@ fn is_file(pathname: &str) -> Result<(), String> {
 
 fn create_histogram(bam_file: &str, threads: usize) -> HashMap<(usize, usize), i32> {
     let mut histogram = HashMap::new();
-
-    let mut bam = bam::Reader::from_path(bam_file)
-        .expect("Error opening BAM/CRAM file.\nIs the input file correct?\n\n\n\n");
+    let mut bam = if bam_file == "-" {
+        bam::Reader::from_stdin().expect("\n\nError reading alignments from stdin.\nDid you include the file header with -h?\n\n\n\n")
+    } else {
+        bam::Reader::from_path(bam_file)
+            .expect("Error opening BAM/CRAM file.\nIs the input file correct?\n\n\n\n")
+    };
     bam.set_threads(threads)
         .expect("Failure setting decompression threads");
     for record in bam
