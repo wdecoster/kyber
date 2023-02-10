@@ -13,7 +13,7 @@ pub fn add_ticks(mut image: ImageBuffer<Rgb<u8>, Vec<u8>>) -> ImageBuffer<Rgb<u8
         );
     }
     // adding intermediate x-axis ticks
-    for tick in &[50, 500, 5000, 50000, 500000] {
+    for tick in &[5, 50, 500, 5000, 50000, 500000] {
         image = draw_filled_rect(
             &image,
             Rect::at(transform_length(*tick) as i32, 0).of_size(1, 3),
