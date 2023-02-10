@@ -1,7 +1,7 @@
 const RESOLUTION_FACTOR: f32 = 5.0;
 const _MIN_LENGTH: usize = 10;
-pub(crate) const MAX_LENGTH: usize = 100000;
-pub(crate) const MIN_IDENTITY: f32 = 75.0;
+pub(crate) const MAX_LENGTH: usize = 1000000;
+pub(crate) const MIN_IDENTITY: f32 = 70.0;
 
 pub fn transform_length(seqlen: usize) -> usize {
     ((seqlen as f32).log10() * 10.0 * RESOLUTION_FACTOR) as usize

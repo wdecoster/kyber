@@ -112,6 +112,7 @@ fn plot_heatmap(histogram: &HashMap<(usize, usize), i32>, color: Color, output: 
             color,
         );
     }
+    info!("Adding axis ticks");
     image = axis_ticks::add_ticks(image);
     info!("Saving image");
     image.save(output).expect("Error while saving image");
