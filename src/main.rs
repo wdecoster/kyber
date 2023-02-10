@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 pub mod axis_ticks;
 pub mod identity;
-pub mod utils;
+pub mod transform;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Color {
@@ -39,6 +39,10 @@ struct Cli {
     /// Color used for heatmap
     #[arg(short, long, value_enum, value_parser, default_value_t = Color::Green)]
     color: Color,
+
+    /// Plot accuracy in phred scale
+    #[arg(short, long, value_parser, default_value_t = false)]
+    phred: bool,
 }
 
 fn main() {
@@ -46,8 +50,13 @@ fn main() {
     let args = Cli::parse();
     is_file(&args.input).unwrap_or_else(|_| panic!("Input file {} is invalid", args.input));
     info!("Collected arguments");
-    let histogram = create_histogram(&args.input, args.threads);
-    plot_heatmap(&histogram, args.color, &args.output);
+    let transform_accuracy = if args.phred {
+        transform::transform_accuracy_phred
+    } else {
+        transform::transform_accuracy_percent
+    };
+    let histogram = create_histogram(&args.input, args.threads, transform_accuracy);
+    plot_heatmap(&histogram, args.color, &args.output, transform_accuracy);
 }
 
 fn is_file(pathname: &str) -> Result<(), String> {
@@ -62,7 +71,11 @@ fn is_file(pathname: &str) -> Result<(), String> {
     }
 }
 
-fn create_histogram(bam_file: &str, threads: usize) -> HashMap<(usize, usize), i32> {
+fn create_histogram(
+    bam_file: &str,
+    threads: usize,
+    transform_accuracy: fn(f32) -> usize,
+) -> HashMap<(usize, usize), i32> {
     let mut histogram = HashMap::new();
     let mut bam = if bam_file == "-" {
         bam::Reader::from_stdin().expect("\n\nError reading alignments from stdin.\nDid you include the file header with -h?\n\n\n\n")
@@ -76,12 +89,12 @@ fn create_histogram(bam_file: &str, threads: usize) -> HashMap<(usize, usize), i
         .rc_records()
         .map(|r| r.expect("Failure parsing Bam file"))
         .filter(|read| read.flags() & (htslib::BAM_FUNMAP | htslib::BAM_FSECONDARY) as u16 == 0)
-        .filter(|read| read.seq_len() < utils::MAX_LENGTH)
+        .filter(|read| read.seq_len() < transform::MAX_LENGTH)
     {
-        let length = utils::transform_length(record.seq_len());
-        let error = utils::transform_accuracy(identity::gap_compressed_identity(record));
+        let length = transform::transform_length(record.seq_len());
+        let error = transform_accuracy(identity::gap_compressed_identity(record));
 
-        if error < utils::transform_accuracy(utils::MIN_IDENTITY) {
+        if error < transform_accuracy(transform::MIN_IDENTITY) {
             let entry = histogram.entry((length, error)).or_insert(0);
             *entry += 1;
         }
@@ -90,10 +103,15 @@ fn create_histogram(bam_file: &str, threads: usize) -> HashMap<(usize, usize), i
     histogram
 }
 
-fn plot_heatmap(histogram: &HashMap<(usize, usize), i32>, color: Color, output: &str) {
+fn plot_heatmap(
+    histogram: &HashMap<(usize, usize), i32>,
+    color: Color,
+    output: &str,
+    transform_accuracy: fn(f32) -> usize,
+) {
     // Determine the maximum binned length and accuracy
-    let width = utils::transform_length(utils::MAX_LENGTH);
-    let height = utils::transform_accuracy(utils::MIN_IDENTITY);
+    let width = transform::transform_length(transform::MAX_LENGTH);
+    let height = transform_accuracy(transform::MIN_IDENTITY);
     let max_value = histogram
         .values()
         .max()
@@ -119,7 +137,7 @@ fn plot_heatmap(histogram: &HashMap<(usize, usize), i32>, color: Color, output: 
         );
     }
     info!("Adding axis ticks");
-    image = axis_ticks::add_ticks(image);
+    image = axis_ticks::add_ticks(image, transform_accuracy);
     info!("Saving image");
     image.save(output).expect("Error while saving image");
 }

@@ -1,9 +1,12 @@
 use image::{ImageBuffer, Rgb};
 use imageproc::{drawing::draw_filled_rect, rect::Rect};
 
-use crate::utils::{transform_accuracy, transform_length, MAX_LENGTH};
+use crate::transform::{transform_length, MAX_LENGTH};
 
-pub fn add_ticks(mut image: ImageBuffer<Rgb<u8>, Vec<u8>>) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+pub fn add_ticks(
+    mut image: ImageBuffer<Rgb<u8>, Vec<u8>>,
+    transform_accuracy: fn(f32) -> usize,
+) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
     // add major x-axis ticks
     for tick in &[10, 100, 1000, 10000, 100000] {
         image = draw_filled_rect(

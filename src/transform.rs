@@ -7,6 +7,10 @@ pub fn transform_length(seqlen: usize) -> usize {
     ((seqlen as f32).log10() * 10.0 * RESOLUTION_FACTOR) as usize
 }
 
-pub fn transform_accuracy(identity: f32) -> usize {
+pub fn transform_accuracy_percent(identity: f32) -> usize {
+    (RESOLUTION_FACTOR * 2.0 * (100.0 - identity)) as usize
+}
+
+pub fn transform_accuracy_phred(identity: f32) -> usize {
     (RESOLUTION_FACTOR * 2.0 * (100.0 - identity)) as usize
 }
