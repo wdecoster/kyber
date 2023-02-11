@@ -24,7 +24,7 @@ enum Color {
 #[derive(Parser, Debug)]
 #[command(author, version, about="Tool to create a length-accuracy heatmap from a cram or bam file", long_about = None)]
 struct Cli {
-    /// cram or bam file to create plot from
+    /// cram or bam file, or use `-` to read from stdin
     #[arg(value_parser)]
     input: String,
 
@@ -56,7 +56,13 @@ fn main() {
         transform::transform_accuracy_percent
     };
     let histogram = create_histogram(&args.input, args.threads, transform_accuracy);
-    plot_heatmap(&histogram, args.color, &args.output, transform_accuracy);
+    plot_heatmap(
+        &histogram,
+        args.color,
+        &args.output,
+        transform_accuracy,
+        args.phred,
+    );
 }
 
 fn is_file(pathname: &str) -> Result<(), String> {
@@ -89,15 +95,12 @@ fn create_histogram(
         .rc_records()
         .map(|r| r.expect("Failure parsing Bam file"))
         .filter(|read| read.flags() & (htslib::BAM_FUNMAP | htslib::BAM_FSECONDARY) as u16 == 0)
-        .filter(|read| read.seq_len() < transform::MAX_LENGTH)
     {
         let length = transform::transform_length(record.seq_len());
         let error = transform_accuracy(identity::gap_compressed_identity(record));
 
-        if error < transform_accuracy(transform::MIN_IDENTITY) {
-            let entry = histogram.entry((length, error)).or_insert(0);
-            *entry += 1;
-        }
+        let entry = histogram.entry((length, error)).or_insert(0);
+        *entry += 1;
     }
     info!("Constructed hashmap for histogram");
     histogram
@@ -108,19 +111,17 @@ fn plot_heatmap(
     color: Color,
     output: &str,
     transform_accuracy: fn(f32) -> usize,
+    phred: bool,
 ) {
-    // Determine the maximum binned length and accuracy
-    let width = transform::transform_length(transform::MAX_LENGTH);
-    let height = transform_accuracy(transform::MIN_IDENTITY);
     let max_value = histogram
         .values()
         .max()
         .expect("ERROR could not get max value of histogram");
     info!(
-        "Figure will be {width}x{height} with {} colored pixels",
+        "Constructing figure with {} colored pixels",
         histogram.values().len()
     );
-    let mut image = RgbImage::new(width as u32, height as u32);
+    let mut image = RgbImage::new(300, 300);
     for ((length, accuracy), count) in histogram {
         let intensity = (*count as f32 / *max_value as f32 * 255.0) as u8;
         let color = match color {
@@ -137,7 +138,19 @@ fn plot_heatmap(
         );
     }
     info!("Adding axis ticks");
-    image = axis_ticks::add_ticks(image, transform_accuracy);
+    image = axis_ticks::add_ticks(image, transform_accuracy, phred);
     info!("Saving image");
     image.save(output).expect("Error while saving image");
+}
+
+#[cfg(test)]
+#[ctor::ctor]
+fn init() {
+    env_logger::init();
+}
+
+#[test]
+fn verify_app() {
+    use clap::CommandFactory;
+    Cli::command().debug_assert()
 }

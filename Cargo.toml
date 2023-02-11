@@ -12,3 +12,6 @@ log = "0.4.17"
 image = "0.24.5"
 imageproc = "0.23.0"
 rust-htslib = "0.40.2"
+
+[dev-dependencies]
+ctor = "*"
