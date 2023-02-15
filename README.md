@@ -5,8 +5,8 @@ Tool to quickly make a minimalistic 300x300 pixels image of read length (log tra
 ## DETAILS
 
 Both the x and y axis are fixed, allowing for comparison across datasets. The current settings should work for most (long-read) datasets, let me know if you disagree.
-The x-axis has log transformed read lengths, with a maximum length of 1M. The 'major' ticks on the axis are at 10, 100, 1000 and 100kb.
-The y-axis has the gap-compressed reference identity, ranging from 70% to 100% with a major tick at 80% and 90%. When using Phred-scaled accuracy scores, the y-axis ranges from Q0 to Q40, with major ticks at Q10, Q20, Q30.
+The x-axis has log transformed read lengths, with a maximum length of 1M.
+The y-axis has the gap-compressed reference identity, ranging from 70% to 100%. When using Phred-scaled accuracy scores, the y-axis ranges from Q0 to Q40.
 
 If your input dataset is large, you may want to consider to downsample it with `samtools view -h` and pipe that to kyber, e.g. `samtools view -h -s 0.01 alignment.cram | kyber -`
 
