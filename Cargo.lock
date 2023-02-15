@@ -584,6 +584,7 @@ dependencies = [
  "imageproc",
  "log",
  "rust-htslib",
+ "rusttype",
 ]
 
 [[package]]
