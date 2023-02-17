@@ -1,7 +1,5 @@
 use clap::{Parser, ValueEnum};
 use image::{Rgb, RgbImage};
-use imageproc::drawing::draw_filled_rect;
-use imageproc::rect::Rect;
 use log::info;
 use rust_htslib::{bam, bam::Read, htslib};
 use std::collections::HashMap;
@@ -121,7 +119,7 @@ fn plot_heatmap(
         "Constructing figure with {} colored pixels",
         histogram.values().len()
     );
-    let mut image = RgbImage::new(300, 300);
+    let mut image = RgbImage::new(601, 601);
     for ((length, accuracy), count) in histogram {
         let intensity = (*count as f32 / *max_value as f32 * 255.0) as u8;
         let color = match color {
@@ -131,11 +129,7 @@ fn plot_heatmap(
             Color::Purple => Rgb([intensity, 0, intensity]),
             Color::Yellow => Rgb([intensity, intensity, 0]),
         };
-        image = draw_filled_rect(
-            &image,
-            Rect::at(*length as i32, *accuracy as i32).of_size(1, 1),
-            color,
-        );
+        image.put_pixel(*length as u32, *accuracy as u32, color);
     }
     info!("Adding axis ticks");
     image = axis_ticks::add_ticks(image, transform_accuracy, phred);

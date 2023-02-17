@@ -4,7 +4,7 @@
 
 use std::cmp::{max, min};
 
-const RESOLUTION_FACTOR: f32 = 5.0;
+const RESOLUTION_FACTOR: f32 = 10.0;
 const _MIN_LENGTH: usize = 10;
 pub(crate) const MAX_LENGTH: usize = 1000000;
 pub(crate) const MIN_IDENTITY: f32 = 70.0;
@@ -35,7 +35,7 @@ pub fn transform_accuracy_percent(identity: f32) -> usize {
 pub fn transform_accuracy_phred(identity: f32) -> usize {
     max(
         0,
-        (7.5 * (MAX_PHRED - accuracy_to_phred(identity))) as usize,
+        (15.0 * (MAX_PHRED - accuracy_to_phred(identity))) as usize,
     )
 }
 
@@ -45,7 +45,7 @@ fn accuracy_to_phred(identity: f32) -> f32 {
 
 #[test]
 fn test_accuracy_to_phred() {
-    assert!((accuracy_to_phred(0.9) - 10.0).abs() < 0.01);
-    assert!((accuracy_to_phred(0.99) - 20.0).abs() < 0.01);
-    assert!((accuracy_to_phred(0.999) - 30.0).abs() < 0.01);
+    assert!((accuracy_to_phred(90.0) - 10.0).abs() < 0.01);
+    assert!((accuracy_to_phred(99.0) - 20.0).abs() < 0.01);
+    assert!((accuracy_to_phred(99.9) - 30.0).abs() < 0.01);
 }

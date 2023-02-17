@@ -8,7 +8,7 @@ use rusttype::{Font, Scale};
 use crate::transform::transform_length;
 
 const COLOR: Rgb<u8> = Rgb([255, 255, 255]);
-const SCALE: Scale = Scale { x: 12.0, y: 12.0 };
+const SCALE: Scale = Scale { x: 24.0, y: 24.0 };
 
 pub fn add_ticks(
     mut image: ImageBuffer<Rgb<u8>, Vec<u8>>,
@@ -23,13 +23,13 @@ pub fn add_ticks(
         let xcoord = transform_length(*tick) as i32;
         let pow = 10i32.pow((index + 1).try_into().unwrap());
         let offset = format!("{tick}").len() as i32;
-        image = draw_filled_rect(&image, Rect::at(xcoord, 0).of_size(1, 6), COLOR);
-        image = draw_filled_rect(&image, Rect::at(xcoord, 294).of_size(1, 6), COLOR);
+        image = draw_filled_rect(&image, Rect::at(xcoord, 0).of_size(1, 12), COLOR);
+        image = draw_filled_rect(&image, Rect::at(xcoord, 588).of_size(1, 12), COLOR);
         image = draw_text(
             &image,
             COLOR,
-            xcoord - 1 - (offset * 2),
-            280,
+            xcoord - 1 - (offset * 5),
+            560,
             SCALE,
             &font,
             &format!("{pow}"),
@@ -40,7 +40,7 @@ pub fn add_ticks(
     for tick in &[5, 50, 500, 5000, 50000, 500000] {
         image = draw_filled_rect(
             &image,
-            Rect::at(transform_length(*tick) as i32, 0).of_size(1, 3),
+            Rect::at(transform_length(*tick) as i32, 0).of_size(1, 6),
             COLOR,
         );
     }
@@ -50,7 +50,7 @@ pub fn add_ticks(
         for m in &[1, 10, 100, 1000, 10000, 100000] {
             image = draw_filled_rect(
                 &image,
-                Rect::at(transform_length(tick * m) as i32, 0).of_size(1, 1),
+                Rect::at(transform_length(tick * m) as i32, 0).of_size(1, 2),
                 COLOR,
             );
         }
@@ -59,14 +59,14 @@ pub fn add_ticks(
     if phred {
         // add major y-axis ticks left and right, and axis labels on the left
         for tick in &[10, 20, 30] {
-            let ycoord = 300 - (7.5 * (*tick as f32)) as i32;
-            image = draw_filled_rect(&image, Rect::at(294, ycoord).of_size(6, 1), COLOR);
-            image = draw_filled_rect(&image, Rect::at(0, ycoord).of_size(6, 1), COLOR);
+            let ycoord = 600 - (15.0 * (*tick as f32)) as i32;
+            image = draw_filled_rect(&image, Rect::at(588, ycoord).of_size(12, 1), COLOR);
+            image = draw_filled_rect(&image, Rect::at(0, ycoord).of_size(12, 1), COLOR);
             image = draw_text(
                 &image,
                 COLOR,
-                8,
-                ycoord - 5,
+                15,
+                ycoord - 10,
                 SCALE,
                 &font,
                 &format!("Q{tick}"),
@@ -77,7 +77,7 @@ pub fn add_ticks(
         for tick in &[5.0, 15.0, 25.0, 35.0] {
             image = draw_filled_rect(
                 &image,
-                Rect::at(297, (7.5 * (*tick as f32)) as i32).of_size(3, 1),
+                Rect::at(594, (15.0 * (*tick as f32)) as i32).of_size(6, 1),
                 COLOR,
             );
         }
@@ -86,7 +86,7 @@ pub fn add_ticks(
         for tick in 0..40 {
             image = draw_filled_rect(
                 &image,
-                Rect::at(299, (7.5 * (tick as f32)) as i32).of_size(1, 1),
+                Rect::at(598, (15.0 * (tick as f32)) as i32).of_size(2, 1),
                 COLOR,
             );
         }
@@ -94,13 +94,13 @@ pub fn add_ticks(
         // add major y-axis ticks  ticks left and right, and axis labels on the left
         for tick in &[80.0, 90.0] {
             let ycoord = transform_accuracy(*tick) as i32;
-            image = draw_filled_rect(&image, Rect::at(294, ycoord).of_size(6, 1), COLOR);
-            image = draw_filled_rect(&image, Rect::at(0, ycoord).of_size(6, 1), COLOR);
+            image = draw_filled_rect(&image, Rect::at(588, ycoord).of_size(12, 1), COLOR);
+            image = draw_filled_rect(&image, Rect::at(0, ycoord).of_size(12, 1), COLOR);
             image = draw_text(
                 &image,
                 COLOR,
-                8,
-                ycoord - 5,
+                15,
+                ycoord - 10,
                 SCALE,
                 &font,
                 &format!("{tick}%"),
@@ -110,7 +110,7 @@ pub fn add_ticks(
         for tick in &[75.0, 85.0, 95.0] {
             image = draw_filled_rect(
                 &image,
-                Rect::at(297, transform_accuracy(*tick) as i32).of_size(3, 1),
+                Rect::at(594, transform_accuracy(*tick) as i32).of_size(6, 1),
                 COLOR,
             );
         }
@@ -118,7 +118,7 @@ pub fn add_ticks(
         for tick in 70..100 {
             image = draw_filled_rect(
                 &image,
-                Rect::at(299, transform_accuracy(tick as f32) as i32).of_size(1, 1),
+                Rect::at(598, transform_accuracy(tick as f32) as i32).of_size(2, 1),
                 COLOR,
             );
         }
