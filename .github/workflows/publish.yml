@@ -13,7 +13,6 @@ jobs:
       matrix:
         name: [
             linux,
-            windows,
             macos
         ]
 
@@ -22,10 +21,6 @@ jobs:
             os: ubuntu-latest
             artifact_name: target/release/kyber
             asset_name: kyber-linux
-          - name: windows
-            os: windows-latest
-            artifact_name: target/release/kyber.exe
-            asset_name: kyber-windows
           - name: macos
             os: macos-latest
             artifact_name: target/release/kyber
