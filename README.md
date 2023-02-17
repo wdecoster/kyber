@@ -1,6 +1,6 @@
 # kyber
 
-Tool to quickly make a minimalistic 300x300 pixels image of read length (log transformed) and read accuracy.
+Tool to quickly make a minimalistic 600x600 pixels image of read length (log transformed) and read accuracy.
 
 ## DETAILS
 
@@ -8,7 +8,9 @@ Both the x and y axis are fixed, allowing for comparison across datasets. The cu
 The x-axis has log transformed read lengths, with a maximum length of 1M.
 The y-axis has the gap-compressed reference identity, ranging from 70% to 100%. When using Phred-scaled accuracy scores, the y-axis ranges from Q0 to Q40.
 
-If your input dataset is large, you may want to consider to downsample it with `samtools view -h` and pipe that to kyber, e.g. `samtools view -h -s 0.01 alignment.cram | kyber -`
+A 150 gigabase BAM file (from ONT PromethION) is processed in 11 minutes using 4 decompression threads (the default). If your input dataset is *very* large, you may want to consider to downsample it with `samtools view -h` and pipe that to kyber, e.g. `samtools view -h -s 0.05 alignment.cram | kyber -`
+
+My intention for this tool is to be minimalistic, without too many bells and whistles. But please let me know if you are missing a feature.
 
 ## EXAMPLE
 
@@ -17,6 +19,8 @@ Gap-compressed percent identity             |  Phred-scale accuracy
 ![example](example/accuracy_heatmap.png)  |  ![example](example/accuracy_heatmap_phred.png)
 
 ## INSTALLATION
+
+Download the appropriate binary from the [releases](https://github.com/wdecoster/kyber/releases).
 
 ## USAGE
 
