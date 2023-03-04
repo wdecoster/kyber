@@ -21,13 +21,14 @@ Arguments:
   <INPUT>  cram or bam file, or use `-` to read from stdin
 
 Options:
-  -t, --threads <THREADS>  Number of parallel decompression threads to use [default: 4]
-  -o, --output <OUTPUT>    Output file name [default: accuracy_heatmap.png]
-  -c, --color <COLOR>      Color used for heatmap [default: green] [possible values: red, green, blue, purple, yellow]
-  -p, --phred              Plot accuracy in phred scale
-  -h, --help               Print help
-  -V, --version            Print version
-```
+Options:
+  -t, --threads <THREADS>        Number of parallel decompression threads to use [default: 4]
+  -o, --output <OUTPUT>          Output file name [default: accuracy_heatmap.png]
+  -c, --color <COLOR>            Color used for heatmap [default: green] [possible values: red, green, blue, purple, yellow]
+  -b, --background <BACKGROUND>  Color used for background [default: black] [possible values: black, white]
+  -p, --phred                    Plot accuracy in phred scale
+  -h, --help                     Print help
+  -V, --version                  Print version```
 
 ## DETAILS
 

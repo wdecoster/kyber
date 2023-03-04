@@ -18,6 +18,12 @@ enum Color {
     Yellow,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum BackGround {
+    Black,
+    White,
+}
+
 // The arguments end up in the Cli struct
 #[derive(Parser, Debug)]
 #[command(author, version, about="Tool to create a length-accuracy heatmap from a cram or bam file", long_about = None)]
@@ -38,6 +44,10 @@ struct Cli {
     #[arg(short, long, value_enum, value_parser, default_value_t = Color::Green)]
     color: Color,
 
+    /// Color used for background
+    #[arg(short, long, value_enum, value_parser, default_value_t = BackGround::Black)]
+    background: BackGround,
+
     /// Plot accuracy in phred scale
     #[arg(short, long, value_parser, default_value_t = false)]
     phred: bool,
@@ -57,6 +67,7 @@ fn main() {
     plot_heatmap(
         &histogram,
         args.color,
+        args.background,
         &args.output,
         transform_accuracy,
         args.phred,
@@ -107,6 +118,7 @@ fn create_histogram(
 fn plot_heatmap(
     histogram: &HashMap<(usize, usize), i32>,
     color: Color,
+    background: BackGround,
     output: &str,
     transform_accuracy: fn(f32) -> usize,
     phred: bool,
@@ -119,7 +131,10 @@ fn plot_heatmap(
         "Constructing figure with {} colored pixels",
         histogram.values().len()
     );
-    let mut image = RgbImage::new(601, 601);
+    let mut image = match background {
+        BackGround::Black => RgbImage::new(601, 601),
+        BackGround::White => RgbImage::from_pixel(601, 601, Rgb([255, 255, 255])),
+    };
     for ((length, accuracy), count) in histogram {
         let intensity = (*count as f32 / *max_value as f32 * 255.0) as u8;
         let color = match color {
