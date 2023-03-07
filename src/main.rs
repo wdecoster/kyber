@@ -1,11 +1,11 @@
 use clap::{Parser, ValueEnum};
 use image::{Rgb, RgbImage};
 use log::info;
-use rust_htslib::{bam, bam::Read, htslib};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub mod axis_ticks;
+pub mod extract_data;
 pub mod identity;
 pub mod transform;
 
