@@ -4,9 +4,9 @@ Tool to quickly make a minimalistic 600x600 pixels heatmap image of read length 
 
 ## EXAMPLES
 
-Gap-compressed percent identity             |  Phred-scale accuracy
-:-------------------------:|:-------------------------:
-![example](example/accuracy_heatmap.png)  |  ![example](example/accuracy_heatmap_phred.png)
+Gap-compressed percent identity             |  Phred-scale accuracy | Comparison of two runs
+:-------------------------:|:-------------------------:|:-------------------------:
+![example](example/accuracy_heatmap.png)  |  ![example](example/accuracy_heatmap_phred.png) | ![example](example/accuracy_heatmap_comparison.png)
 
 ## INSTALLATION
 
