@@ -193,9 +193,3 @@ fn verify_app() {
     use clap::CommandFactory;
     Cli::command().debug_assert()
 }
-
-// kyber-solo 10:09.22 15504kb
-// kyber-multi 9:54.37 39436kb
-// kyber-multi (x2) 19:45.46 73680kb
-// kyber-multi-as-one 9:59.75 15152kb
-// kyber-multi-as-one (x2)
