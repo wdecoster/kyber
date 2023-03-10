@@ -42,7 +42,7 @@ struct Cli {
     output: String,
 
     /// Color used for heatmap
-    #[arg(short, long, value_enum, value_parser, num_args = 0..=3, default_values_t = [Color::Green])]
+    #[arg(short, long, value_enum, value_parser, num_args = 0..=3, default_values_t = [Color::Red, Color::Blue, Color::Green])]
     color: Vec<Color>,
 
     /// Color used for background
