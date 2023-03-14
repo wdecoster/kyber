@@ -201,3 +201,20 @@ fn verify_app() {
     use clap::CommandFactory;
     Cli::command().debug_assert()
 }
+
+#[test]
+fn test_single_file() {
+    let hashmap = extract_data::bam_to_hashmap(
+        "test-data/small-test-phased.bam",
+        4,
+        transform::transform_accuracy_percent,
+    );
+    plot_heatmap(
+        vec![hashmap],
+        BackGround::Black,
+        vec![Color::Purple],
+        "accuracy_heatmap.png",
+        transform::transform_accuracy_percent,
+        false,
+    );
+}
