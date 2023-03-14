@@ -52,6 +52,10 @@ struct Cli {
     /// Plot accuracy in phred scale
     #[arg(short, long, value_parser, default_value_t = false)]
     phred: bool,
+
+    /// Normalize the counts in each bin with a log2
+    #[arg(long, value_parser, default_value_t = false)]
+    normalize: bool,
 }
 
 fn main() {
@@ -66,7 +70,11 @@ fn main() {
     for f in args.input {
         utils::is_file(&f).unwrap_or_else(|_| panic!("Input file {f} is invalid",));
         let hashmap = extract_data::bam_to_hashmap(&f, args.threads, transform_accuracy);
-        hashmaps.push(hashmap);
+        if args.normalize {
+            hashmaps.push(extract_data::log_transform_hashmap(hashmap));
+        } else {
+            hashmaps.push(hashmap);
+        }
     }
     plot_heatmap(
         hashmaps,
