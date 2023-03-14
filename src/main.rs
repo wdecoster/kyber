@@ -120,7 +120,7 @@ fn combine_hashmaps(
     hashmaps: &Vec<HashMap<(usize, usize), i32>>,
     colors: Vec<Color>,
 ) -> Vec<HashMap<(usize, usize), Array1<u8>>> {
-    let maxval = max_of_hashmaps(&hashmaps);
+    let maxval = max_of_hashmaps(hashmaps);
     let mut new_hashmaps = vec![];
     for (hashmap, color) in hashmaps.iter().zip(colors) {
         new_hashmaps.push(reads_to_intensity(hashmap, color, maxval));
@@ -137,19 +137,22 @@ fn plot_heatmap(
     phred: bool,
 ) {
     let mut image = match background {
-        BackGround::Black => RgbImage::new(601, 601),
+        BackGround::Black => RgbImage::from_pixel(601, 601, Rgb([0, 0, 0])),
         BackGround::White => RgbImage::from_pixel(601, 601, Rgb([255, 255, 255])),
     };
 
     if hashmaps.len() == 1 {
+        // Creating a plot with just a single dataset
         info!(
             "Constructing figure with {} colored pixels",
             hashmaps[0].values().len()
         );
+        // All counts are scaled to the max value
         let max_value = hashmaps[0]
             .values()
             .max()
             .expect("ERROR could not get max value of histogram");
+        // Iterate over the hashmap to fill in bins and color pixels accordingly
         for ((length, accuracy), count) in &hashmaps[0] {
             let intensity = (*count as f32 / *max_value as f32 * 255.0) as u8;
             let color = match color[0] {
@@ -165,6 +168,8 @@ fn plot_heatmap(
         // Creating a plot of multiple datasets
         let default = arr1(&[0, 0, 0]);
         let hashmaps = combine_hashmaps(&hashmaps, color);
+        // Iterate over the first hashmap, and call .get for the remaining hashmaps
+        // If that bin is unused in one of the remaining hashmaps the default (0, 0, 0) is added
         for ((length, accuracy), arr) in &hashmaps[0] {
             let summed_arr = if hashmaps.len() == 2 {
                 arr + hashmaps[1].get(&(*length, *accuracy)).unwrap_or(&default)
@@ -173,10 +178,12 @@ fn plot_heatmap(
                     + hashmaps[2].get(&(*length, *accuracy)).unwrap_or(&default)
             };
             let arr: [u8; 3] = summed_arr.clone().into_raw_vec().try_into().unwrap();
+            // Use the summed RGB arrays to fill in the pixel
             image.put_pixel(*length as u32, *accuracy as u32, Rgb(arr));
         }
     }
     info!("Adding axis ticks");
+    // Use white text on a black background and vice versa
     image = match background {
         BackGround::Black => {
             axis_ticks::add_ticks(image, transform_accuracy, phred, Rgb([255, 255, 255]))
@@ -216,5 +223,22 @@ fn test_single_file() {
         "accuracy_heatmap.png",
         transform::transform_accuracy_percent,
         false,
+    );
+}
+
+#[test]
+fn test_single_file_phred() {
+    let hashmap = extract_data::bam_to_hashmap(
+        "test-data/small-test-phased.bam",
+        4,
+        transform::transform_accuracy_phred,
+    );
+    plot_heatmap(
+        vec![hashmap],
+        BackGround::White,
+        vec![Color::Red],
+        "accuracy_heatmap.png",
+        transform::transform_accuracy_phred,
+        true,
     );
 }
