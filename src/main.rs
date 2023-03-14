@@ -177,7 +177,15 @@ fn plot_heatmap(
         }
     }
     info!("Adding axis ticks");
-    image = axis_ticks::add_ticks(image, transform_accuracy, phred);
+    image = match background {
+        BackGround::Black => {
+            axis_ticks::add_ticks(image, transform_accuracy, phred, Rgb([255, 255, 255]))
+        }
+        BackGround::White => {
+            axis_ticks::add_ticks(image, transform_accuracy, phred, Rgb([0, 0, 0]))
+        }
+    };
+
     info!("Saving image");
     image.save(output).expect("Error while saving image");
 }
