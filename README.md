@@ -26,6 +26,7 @@ Options:
   -c, --color <COLOR>            Color used for heatmap [default: green] [possible values: red, green, blue, purple, yellow]
   -b, --background <BACKGROUND>  Color used for background [default: black] [possible values: black, white]
   -p, --phred                    Plot accuracy in phred scale
+      --normalize                Normalize the counts in each bin with a log2
   -h, --help                     Print help
   -V, --version                  Print version
   ```
@@ -37,5 +38,3 @@ The x-axis has log transformed read lengths, with a maximum length of 1M.
 The y-axis has the gap-compressed reference identity, ranging from 70% to 100%. When using Phred-scaled accuracy scores, the y-axis ranges from Q0 to Q40.
 
 A 150 gigabase BAM file (from ONT PromethION) is processed in 11 minutes using 4 decompression threads (the default). If your input dataset is *very* large, you may want to consider to downsample it with `samtools view -h` and pipe that to kyber, e.g. `samtools view -h -s 0.05 alignment.cram | kyber -`
-
-My intention for this tool is to be minimalistic, without too many bells and whistles. But please let me know if you are missing a feature.

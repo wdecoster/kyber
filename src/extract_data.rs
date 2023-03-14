@@ -36,3 +36,13 @@ pub fn bam_to_hashmap(
     info!("Constructed hashmap for histogram");
     histogram
 }
+
+pub fn log_transform_hashmap(
+    hashmap: HashMap<(usize, usize), i32>,
+) -> HashMap<(usize, usize), i32> {
+    let mut transformed_hashmap = HashMap::new();
+    for ((key, value), count) in hashmap {
+        transformed_hashmap.insert((key, value), (count as f32).log2() as i32);
+    }
+    transformed_hashmap
+}
