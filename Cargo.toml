@@ -23,7 +23,7 @@ rusttype = "0.9.3"
 ndarray = "0.15.6"
 
 [dev-dependencies]
-ctor = "*"
+ctor = "0.1.26"
 
 # The profile that 'cargo dist' will build with
 [profile.dist]
