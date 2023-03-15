@@ -25,6 +25,9 @@ ndarray = "0.15.6"
 [dev-dependencies]
 ctor = "0.1.26"
 
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.
+
 # The profile that 'cargo dist' will build with
 [profile.dist]
 inherits = "release"
