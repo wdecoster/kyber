@@ -27,6 +27,8 @@ ctor = "0.1.26"
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.
+lto = "thin"
+codegen-units = 1
 
 # The profile that 'cargo dist' will build with
 [profile.dist]
