@@ -13,7 +13,6 @@ pub fn bam_to_hashmap(
     threads: usize,
     transform_accuracy: fn(f32) -> usize,
 ) -> HashMap<(usize, usize), i32> {
-    let mut histogram = HashMap::new();
     let mut bam = if bam_file == "-" {
         bam::Reader::from_stdin().expect("\n\nError reading alignments from stdin.\nDid you include the file header with -h?\n\n\n\n")
     } else {
@@ -22,17 +21,19 @@ pub fn bam_to_hashmap(
     };
     bam.set_threads(threads)
         .expect("Failure setting decompression threads");
-    for record in bam
+    let histogram = bam
         .rc_records()
         .map(|r| r.expect("Failure parsing Bam file"))
         .filter(|read| read.flags() & (htslib::BAM_FUNMAP | htslib::BAM_FSECONDARY) as u16 == 0)
-    {
-        let length = transform::transform_length(record.seq_len());
-        let error = transform_accuracy(identity::gap_compressed_identity(record));
+        .fold(HashMap::new(), |mut hist, record| {
+            let length = transform::transform_length(record.seq_len());
+            let error = transform_accuracy(identity::gap_compressed_identity(record));
 
-        let entry = histogram.entry((length, error)).or_insert(0);
-        *entry += 1;
-    }
+            let entry = hist.entry((length, error)).or_insert(0);
+            *entry += 1;
+            hist
+        });
+
     info!("Constructed hashmap for histogram");
     histogram
 }
