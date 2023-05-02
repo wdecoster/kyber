@@ -35,6 +35,9 @@ pub fn bam_to_hashmap(
         });
 
     info!("Constructed hashmap for histogram");
+    if histogram.is_empty() {
+        panic!("No reads found in BAM file {}", bam_file);
+    }
     histogram
 }
 
