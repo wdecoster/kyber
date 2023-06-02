@@ -38,3 +38,7 @@ The x-axis has log transformed read lengths, with a maximum length of 1M.
 The y-axis has the gap-compressed reference identity, ranging from 70% to 100%. When using Phred-scaled accuracy scores, the y-axis ranges from Q0 to Q40.
 
 A 150 gigabase BAM file (from ONT PromethION) is processed in 11 minutes using 4 decompression threads (the default). If your input dataset is *very* large, you may want to consider to downsample it with `samtools view -h` and pipe that to kyber, e.g. `samtools view -h -s 0.05 alignment.cram | kyber -`
+
+## CITATION
+
+If you use this tool, please consider citing our [publication](https://academic.oup.com/bioinformatics/article/39/5/btad311/7160911).
