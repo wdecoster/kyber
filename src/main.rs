@@ -29,8 +29,8 @@ enum BackGround {
 #[derive(Parser, Debug)]
 #[command(author, version, about="Tool to create a length-accuracy heatmap from a cram or bam file", long_about = None)]
 struct Cli {
-    /// cram or bam file(s), or use `-` to read from stdin
-    #[arg(value_parser, num_args = 0..=3, required = true)]
+    /// cram or bam file(s), or use `-` to read a file from stdin with e.g. samtools view -h
+    #[arg(short, long, value_parser, num_args = 0..=3, required = true)]
     input: Vec<String>,
 
     /// Number of parallel decompression threads to use
@@ -61,6 +61,14 @@ struct Cli {
 fn main() {
     env_logger::init();
     let args = Cli::parse();
+    // check if there are equal number of arguments for the input and color parameters
+    if args.input.len() != args.color.len() {
+        panic!(
+            "\n\nERROR: number of input files ({}) and colors ({}) do not match!",
+            args.input.len(),
+            args.color.len()
+        );
+    }
     let transform_accuracy = if args.phred {
         transform::transform_accuracy_phred
     } else {

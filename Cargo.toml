@@ -1,6 +1,6 @@
 [package]
 name = "kyber"
-version = "0.3.5"
+version = "0.4.0"
 edition = "2021"
 authors = ["Wouter De Coster decosterwouter@gmail.com"]
 license = "MIT"
@@ -18,7 +18,7 @@ env_logger = "0.10.0"
 log = "0.4.17"
 image = "0.24.5"
 imageproc = "0.23.0"
-rust-htslib = "0.42.0"
+rust-htslib = "0.43.1"
 rusttype = "0.9.3"
 ndarray = "0.15.6"
 

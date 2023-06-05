@@ -14,7 +14,7 @@ pub fn bam_to_hashmap(
     transform_accuracy: fn(f32) -> usize,
 ) -> HashMap<(usize, usize), i32> {
     let mut bam = if bam_file == "-" {
-        bam::Reader::from_stdin().expect("\n\nError reading alignments from stdin.\nDid you include the file header with -h?\n\n\n\n")
+        bam::Reader::from_stdin().expect("\n\nError reading alignments from stdin.\nDid you include the file header with samtools view -h?\n\n\n\n")
     } else {
         bam::Reader::from_path(bam_file)
             .expect("Error opening BAM/CRAM file.\nIs the input file correct?\n\n\n\n")
