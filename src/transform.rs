@@ -1,6 +1,6 @@
 // The transformations below and the minimal and maximal cutoffs
 // below make sure that both lengths and accuracies end up in an equal space
-// the current parameters result in a 300*300 image
+// the current parameters result in a 600*600 image
 
 use std::cmp::{max, min};
 
@@ -11,7 +11,7 @@ pub(crate) const MIN_IDENTITY: f32 = 70.0;
 const MAX_PHRED: f32 = 40.0;
 
 // log10-transform the read lengths, which are limited to 1M reads
-// log10(1M) = 6, multiply by 50 to get a 300 pixels axis
+// log10(1M) = 6, multiply by 50 to get a 600 pixels axis
 pub fn transform_length(seqlen: usize) -> usize {
     min(
         ((MAX_LENGTH as f32).log10() * 10.0 * RESOLUTION_FACTOR) as usize,
@@ -21,7 +21,7 @@ pub fn transform_length(seqlen: usize) -> usize {
 
 // identities are converted to error rate to start the plot from the top left corner
 // minimal accuracy is 70, so the 30 accuracies levels (after cast to usize)
-// are multiplied by 10 to get a 300 pixels axis
+// are multiplied by 20 to get a 600 pixels axis
 pub fn transform_accuracy_percent(identity: f32) -> usize {
     min(
         (RESOLUTION_FACTOR * 2.0 * (100.0 - MIN_IDENTITY)) as usize,
@@ -31,7 +31,7 @@ pub fn transform_accuracy_percent(identity: f32) -> usize {
 
 // identities are converted to phred scale and capped at 40
 // this leaves us with 40 accuracy levels (after cast to usize)
-// and this is multiplied by 7.5 to get a 300 pixels axis
+// and this is multiplied by 7.5 to get a 600 pixels axis
 pub fn transform_accuracy_phred(identity: f32) -> usize {
     max(
         0,

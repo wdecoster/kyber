@@ -28,7 +28,6 @@ pub fn bam_to_hashmap(
         .fold(HashMap::new(), |mut hist, record| {
             let length = transform::transform_length(record.seq_len());
             let error = transform_accuracy(identity::gap_compressed_identity(record));
-
             let entry = hist.entry((length, error)).or_insert(0);
             *entry += 1;
             hist

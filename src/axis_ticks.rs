@@ -3,11 +3,10 @@ use imageproc::{
     drawing::{draw_filled_rect, draw_text},
     rect::Rect,
 };
-use rusttype::{Font, Scale};
+use ab_glyph::FontVec;
 
 use crate::transform::transform_length;
 
-const SCALE: Scale = Scale { x: 24.0, y: 24.0 };
 
 pub fn add_ticks(
     mut image: ImageBuffer<Rgb<u8>, Vec<u8>>,
@@ -16,10 +15,10 @@ pub fn add_ticks(
     color: Rgb<u8>,
 ) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
     let font_data: &[u8] = include_bytes!("../dev/TimesNewRoman/times new roman.ttf");
-    let font: Font<'static> = Font::try_from_bytes(font_data).expect("Error parsing font file");
+    let font: FontVec = FontVec::try_from_vec(font_data.to_vec()).expect("Error parsing font file");
 
     // add major x-axis ticks at the top and bottom, and add axis labels at the bottom
-    for (index, tick) in vec![10, 100, 1000, 10000, 100000].iter().enumerate() {
+    for (index, tick) in [10, 100, 1000, 10000, 100000].iter().enumerate() {
         let xcoord = transform_length(*tick) as i32;
         let pow = 10i32.pow((index + 1).try_into().unwrap());
         let offset = format!("{tick}").len() as i32;
@@ -30,7 +29,7 @@ pub fn add_ticks(
             color,
             xcoord - 1 - (offset * 5),
             560,
-            SCALE,
+            24.0,
             &font,
             &format!("{pow}"),
         )
@@ -67,7 +66,7 @@ pub fn add_ticks(
                 color,
                 15,
                 ycoord - 10,
-                SCALE,
+                24.0,
                 &font,
                 &format!("Q{tick}"),
             );
@@ -101,7 +100,7 @@ pub fn add_ticks(
                 color,
                 15,
                 ycoord - 10,
-                SCALE,
+                24.0,
                 &font,
                 &format!("{tick}%"),
             );

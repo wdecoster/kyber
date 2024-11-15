@@ -78,6 +78,7 @@ fn main() {
     for f in args.input {
         utils::is_file(&f).unwrap_or_else(|_| panic!("Input file {f} is invalid",));
         let hashmap = extract_data::bam_to_hashmap(&f, args.threads, transform_accuracy);
+        println!("{:?}", hashmap);
         if args.normalize {
             hashmaps.push(extract_data::log_transform_hashmap(hashmap));
         } else {
@@ -193,7 +194,7 @@ fn plot_heatmap(
                 arr + hashmaps[1].get(&(*length, *accuracy)).unwrap_or(&default)
                     + hashmaps[2].get(&(*length, *accuracy)).unwrap_or(&default)
             };
-            let arr: [u8; 3] = summed_arr.clone().into_raw_vec().try_into().unwrap();
+            let arr: [u8; 3] = summed_arr.clone().into_raw_vec_and_offset().0.try_into().unwrap();
             // Use the summed RGB arrays to fill in the pixel
             image.put_pixel(*length as u32, *accuracy as u32, Rgb(arr));
         }
@@ -236,9 +237,44 @@ fn test_single_file() {
         vec![hashmap],
         BackGround::Black,
         vec![Color::Purple],
-        "accuracy_heatmap.png",
+        "accuracy_heatmap1.png",
         transform::transform_accuracy_percent,
         false,
+    );
+}
+
+#[test]
+#[ignore]
+fn test_single_file_from_de() {
+    let hashmap = extract_data::bam_to_hashmap(
+        "test-data/small-test-phased_de.bam",
+        4,
+        transform::transform_accuracy_percent,
+    );
+    plot_heatmap(
+        vec![hashmap],
+        BackGround::Black,
+        vec![Color::Purple],
+        "accuracy_heatmap4.png",
+        transform::transform_accuracy_percent,
+        false,
+    );
+}
+
+#[test]
+fn test_single_file_black_phred() {
+    let hashmap = extract_data::bam_to_hashmap(
+        "test-data/small-test-phased.bam",
+        4,
+        transform::transform_accuracy_phred,
+    );
+    plot_heatmap(
+        vec![hashmap],
+        BackGround::Black,
+        vec![Color::Purple],
+        "accuracy_heatmap3.png",
+        transform::transform_accuracy_percent,
+        true,
     );
 }
 
@@ -253,7 +289,7 @@ fn test_single_file_phred() {
         vec![hashmap],
         BackGround::White,
         vec![Color::Red],
-        "accuracy_heatmap.png",
+        "accuracy_heatmap2.png",
         transform::transform_accuracy_phred,
         true,
     );

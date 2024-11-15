@@ -26,8 +26,8 @@ pub fn gap_compressed_identity(record: std::rc::Rc<rust_htslib::bam::Record>) ->
                     _ => (),
                 }
             }
-            1.0 - ((get_nm_tag(&record) - gap_size + gap_count) as f32
-                / (matches + gap_count) as f32)
+            100.0 * (1.0 - ((get_nm_tag(&record) - gap_size + gap_count) as f32
+                / (matches + gap_count) as f32))
         }
     }
 }
