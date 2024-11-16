@@ -20,7 +20,7 @@ enum Color {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-enum BackGround {
+pub enum BackGround {
     Black,
     White,
 }
@@ -42,8 +42,8 @@ struct Cli {
     output: String,
 
     /// Color used for heatmap
-    #[arg(short, long, value_enum, value_parser, num_args = 0..=3, default_values_t = [Color::Red, Color::Blue, Color::Green])]
-    color: Vec<Color>,
+    #[arg(short, long, value_enum, value_parser, num_args = 0..=3)]
+    color: Option<Vec<Color>>,
 
     /// Color used for background
     #[arg(short, long, value_enum, value_parser, default_value_t = BackGround::Black)]
@@ -61,14 +61,7 @@ struct Cli {
 fn main() {
     env_logger::init();
     let args = Cli::parse();
-    // check if there are equal number of arguments for the input and color parameters
-    if args.input.len() != args.color.len() {
-        panic!(
-            "\n\nERROR: number of input files ({}) and colors ({}) do not match!",
-            args.input.len(),
-            args.color.len()
-        );
-    }
+    let colors = assign_colors(&args);
     let transform_accuracy = if args.phred {
         transform::transform_accuracy_phred
     } else {
@@ -78,7 +71,6 @@ fn main() {
     for f in args.input {
         utils::is_file(&f).unwrap_or_else(|_| panic!("Input file {f} is invalid",));
         let hashmap = extract_data::bam_to_hashmap(&f, args.threads, transform_accuracy);
-        println!("{:?}", hashmap);
         if args.normalize {
             hashmaps.push(extract_data::log_transform_hashmap(hashmap));
         } else {
@@ -88,11 +80,30 @@ fn main() {
     plot_heatmap(
         hashmaps,
         args.background,
-        args.color,
+        colors,
         &args.output,
         transform_accuracy,
         args.phred,
     );
+}
+
+fn assign_colors(args: &Cli) -> Vec<Color> {
+    // check if there are equal number of arguments for the input and color parameters
+    let default_colors = [Color::Red, Color::Blue, Color::Green];
+    let colors = match &args.color {
+        Some(c) => {
+            if c.len() != args.input.len() {
+                panic!(
+                    "\n\nERROR: number of input files ({}) and colors ({}) do not match!",
+                    args.input.len(),
+                    c.len()
+                );
+            }
+            c
+        }
+        None => &default_colors.iter().cycle().take(args.input.len()).cloned().collect::<Vec<Color>>(),
+    };
+    colors.to_owned()
 }
 
 fn max_of_hashmaps(hashmaps: &Vec<HashMap<(usize, usize), i32>>) -> f32 {
@@ -114,21 +125,41 @@ fn reads_to_intensity(
     hashmap: &HashMap<(usize, usize), i32>,
     color: Color,
     maxval: f32,
+    background: BackGround,
 ) -> HashMap<(usize, usize), Array1<u8>> {
     let color = match color {
-        Color::Red => arr1(&[1, 0, 0]),
-        Color::Green => arr1(&[0, 1, 0]),
-        Color::Blue => arr1(&[0, 0, 1]),
-        Color::Purple => arr1(&[1, 0, 1]),
-        Color::Yellow => arr1(&[1, 1, 0]),
+        Color::Red => match background {
+            BackGround::White => arr1(&[255.0, 0.0, 0.0]),
+            BackGround::Black => arr1(&[1.0, 0.0, 0.0]),
+        },
+        Color::Green => match background {
+            BackGround::White => arr1(&[0.0, 255.0, 0.0]),
+            BackGround::Black => arr1(&[0.0, 1.0, 0.0]),
+        },
+        Color::Blue => match background {
+            BackGround::White => arr1(&[0.0, 0.0, 255.0]),
+            BackGround::Black => arr1(&[0.0, 0.0, 1.0]),
+        },
+        Color::Purple => match background {
+            BackGround::White => arr1(&[255.0, 0.0, 255.0]),
+            BackGround::Black => arr1(&[1.0, 0.0, 1.0]),
+        },
+        Color::Yellow => match background {
+            BackGround::White => arr1(&[255.0, 255.0, 0.0]),
+            BackGround::Black => arr1(&[1.0, 1.0, 0.0]),
+        },
     };
     let mut new_hashmap = HashMap::new();
     for ((length, accuracy), count) in hashmap {
-        let intensity = (*count as f32 / maxval * 255.0) as u8;
+        let intensity = *count as f32 / maxval * 255.0;
         let entry = new_hashmap
             .entry((*length, *accuracy))
             .or_insert(arr1(&[0, 0, 0]));
-        *entry = color.clone() * intensity;
+        if background == BackGround::White {
+            *entry = (color.clone() * (intensity / 255.0)).mapv(|x| (x * 255.0) as u8);
+        } else {
+            *entry = (color.clone() * intensity).mapv(|x| x as u8);
+        }
     }
     new_hashmap
 }
@@ -136,11 +167,12 @@ fn reads_to_intensity(
 fn combine_hashmaps(
     hashmaps: &Vec<HashMap<(usize, usize), i32>>,
     colors: Vec<Color>,
+    background: BackGround
 ) -> Vec<HashMap<(usize, usize), Array1<u8>>> {
     let maxval = max_of_hashmaps(hashmaps);
     let mut new_hashmaps = vec![];
     for (hashmap, color) in hashmaps.iter().zip(colors) {
-        new_hashmaps.push(reads_to_intensity(hashmap, color, maxval));
+        new_hashmaps.push(reads_to_intensity(hashmap, color, maxval, background));
     }
     new_hashmaps
 }
@@ -148,7 +180,7 @@ fn combine_hashmaps(
 fn plot_heatmap(
     hashmaps: Vec<HashMap<(usize, usize), i32>>,
     background: BackGround,
-    color: Vec<Color>,
+    chosen_color: Vec<Color>,
     output: &str,
     transform_accuracy: fn(f32) -> usize,
     phred: bool,
@@ -160,9 +192,10 @@ fn plot_heatmap(
 
     if hashmaps.len() == 1 {
         // Creating a plot with just a single dataset
+        let hashmap = &hashmaps[0];
         info!(
             "Constructing figure with {} colored pixels",
-            hashmaps[0].values().len()
+            hashmap.values().len()
         );
         // All counts are scaled to the max value
         let max_value = hashmaps[0]
@@ -170,21 +203,21 @@ fn plot_heatmap(
             .max()
             .expect("ERROR could not get max value of histogram");
         // Iterate over the hashmap to fill in bins and color pixels accordingly
-        for ((length, accuracy), count) in &hashmaps[0] {
+        for ((length, accuracy), count) in hashmap {
             let intensity = (*count as f32 / *max_value as f32 * 255.0) as u8;
-            let color = match color[0] {
-                Color::Red => Rgb([intensity, 0, 0]),
-                Color::Green => Rgb([0, intensity, 0]),
-                Color::Blue => Rgb([0, 0, intensity]),
-                Color::Purple => Rgb([intensity, 0, intensity]),
-                Color::Yellow => Rgb([intensity, intensity, 0]),
+            let color = match chosen_color[0] {
+                Color::Red => if background == BackGround::White { Rgb([255, 255 - intensity, 255 - intensity]) } else { Rgb([intensity, 0, 0]) },
+                Color::Green => if background == BackGround::White { Rgb([255 - intensity, 255, 255 - intensity]) } else { Rgb([0, intensity, 0]) },
+                Color::Blue => if background == BackGround::White { Rgb([255 - intensity, 255 - intensity, 255]) } else { Rgb([0, 0, intensity]) },
+                Color::Purple => if background == BackGround::White { Rgb([255, 255 - intensity, 255]) } else { Rgb([intensity, 0, intensity]) },
+                Color::Yellow => if background == BackGround::White { Rgb([255, 255, 255 - intensity]) } else { Rgb([intensity, intensity, 0]) },
             };
             image.put_pixel(*length as u32, *accuracy as u32, color);
         }
     } else {
         // Creating a plot of multiple datasets
         let default = arr1(&[0, 0, 0]);
-        let hashmaps = combine_hashmaps(&hashmaps, color);
+        let hashmaps = combine_hashmaps(&hashmaps, chosen_color, background);
         // Iterate over the first hashmap, and call .get for the remaining hashmaps
         // If that bin is unused in one of the remaining hashmaps the default (0, 0, 0) is added
         for ((length, accuracy), arr) in &hashmaps[0] {
@@ -200,15 +233,7 @@ fn plot_heatmap(
         }
     }
     info!("Adding axis ticks");
-    // Use white text on a black background and vice versa
-    image = match background {
-        BackGround::Black => {
-            axis_ticks::add_ticks(image, transform_accuracy, phred, Rgb([255, 255, 255]))
-        }
-        BackGround::White => {
-            axis_ticks::add_ticks(image, transform_accuracy, phred, Rgb([0, 0, 0]))
-        }
-    };
+    image = axis_ticks::add_ticks(image, transform_accuracy, phred, background);
 
     info!("Saving image");
     image.save(output).expect("Error while saving image");
@@ -237,7 +262,7 @@ fn test_single_file() {
         vec![hashmap],
         BackGround::Black,
         vec![Color::Purple],
-        "accuracy_heatmap1.png",
+        "accuracy_heatmap_percent_on_black.png",
         transform::transform_accuracy_percent,
         false,
     );
@@ -255,7 +280,7 @@ fn test_single_file_from_de() {
         vec![hashmap],
         BackGround::Black,
         vec![Color::Purple],
-        "accuracy_heatmap4.png",
+        "accuracy_heatmap_percent_on_black_from_de.png",
         transform::transform_accuracy_percent,
         false,
     );
@@ -272,7 +297,7 @@ fn test_single_file_black_phred() {
         vec![hashmap],
         BackGround::Black,
         vec![Color::Purple],
-        "accuracy_heatmap3.png",
+        "accuracy_heatmap_phred_on_black.png",
         transform::transform_accuracy_percent,
         true,
     );
@@ -289,7 +314,7 @@ fn test_single_file_phred() {
         vec![hashmap],
         BackGround::White,
         vec![Color::Red],
-        "accuracy_heatmap2.png",
+        "accuracy_heatmap_phred_on_white.png",
         transform::transform_accuracy_phred,
         true,
     );
