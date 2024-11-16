@@ -56,3 +56,42 @@ fn get_de_tag(record: &bam::Record) -> Option<f32> {
         Err(_e) => None,
     }
 }
+
+
+pub fn ubam_accuracy(record: std::rc::Rc<rust_htslib::bam::Record>) -> f32 {
+    // get the expected accuracy from the quality scores in the bam file
+    // for this, convert each quality score to the error probability
+    // and calculate the average error probability
+    let mut error_probabilities = Vec::new();
+    for quality in record.qual().iter() {
+        error_probabilities.push(10.0f32.powf(-(*quality as f32) / 10.0));
+    }
+    100.0 * (1.0 - error_probabilities.iter().sum::<f32>() / error_probabilities.len() as f32)
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_record_with_qual(qual: &[u8]) -> std::rc::Rc<bam::Record> {
+        let mut record = bam::Record::new();
+        // create a seq with the same length as the quality scores
+        let seq= vec![b'A'; qual.len()];
+        record.set(&[], None, &seq, qual);
+        std::rc::Rc::new(record)
+    }
+
+    #[test]
+    fn test_ubam_accuracy() {
+        let record = create_record_with_qual(&[30, 30, 30, 30, 30]);
+        let accuracy = ubam_accuracy(record);
+        assert!((accuracy - 99.9).abs() < f32::EPSILON);
+
+        let record = create_record_with_qual(&[20, 20, 20, 20, 20]);
+        let accuracy = ubam_accuracy(record);
+        assert!((accuracy - 99.0).abs() < f32::EPSILON);
+
+        let record = create_record_with_qual(&[10, 10, 10, 10, 10]);
+        let accuracy = ubam_accuracy(record);
+        assert!((accuracy - 90.0).abs() < f32::EPSILON);
+    }
+}

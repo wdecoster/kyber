@@ -5,3 +5,4 @@ accuracy_heatmap_percent_on_black.png
 accuracy_heatmap_phred_on_black.png
 accuracy_heatmap_phred_on_white.png
 test-data/small-test-phased_de.bam
+accuracy_heatmap_percent_on_black_ubam.png

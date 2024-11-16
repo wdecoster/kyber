@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
 use image::{Rgb, RgbImage};
-use log::info;
+use log::{debug, info};
 use ndarray::{arr1, Array1};
 use std::collections::HashMap;
 
@@ -56,6 +56,10 @@ struct Cli {
     /// Normalize the counts in each bin with a log2
     #[arg(long, value_parser, default_value_t = false)]
     normalize: bool,
+
+    /// get reads from ubam file
+    #[arg(long, value_parser, default_value_t = false)]
+    ubam: bool,
 }
 
 fn main() {
@@ -70,7 +74,7 @@ fn main() {
     let mut hashmaps = vec![];
     for f in args.input {
         utils::is_file(&f).unwrap_or_else(|_| panic!("Input file {f} is invalid",));
-        let hashmap = extract_data::bam_to_hashmap(&f, args.threads, transform_accuracy);
+        let hashmap = extract_data::bam_to_hashmap(&f, args.threads, transform_accuracy, args.ubam);
         if args.normalize {
             hashmaps.push(extract_data::log_transform_hashmap(hashmap));
         } else {
@@ -101,7 +105,12 @@ fn assign_colors(args: &Cli) -> Vec<Color> {
             }
             c
         }
-        None => &default_colors.iter().cycle().take(args.input.len()).cloned().collect::<Vec<Color>>(),
+        None => &default_colors
+            .iter()
+            .cycle()
+            .take(args.input.len())
+            .cloned()
+            .collect::<Vec<Color>>(),
     };
     colors.to_owned()
 }
@@ -167,7 +176,7 @@ fn reads_to_intensity(
 fn combine_hashmaps(
     hashmaps: &Vec<HashMap<(usize, usize), i32>>,
     colors: Vec<Color>,
-    background: BackGround
+    background: BackGround,
 ) -> Vec<HashMap<(usize, usize), Array1<u8>>> {
     let maxval = max_of_hashmaps(hashmaps);
     let mut new_hashmaps = vec![];
@@ -197,20 +206,62 @@ fn plot_heatmap(
             "Constructing figure with {} colored pixels",
             hashmap.values().len()
         );
+        debug!("Constructing figure with {:?}", hashmap);
         // All counts are scaled to the max value
         let max_value = hashmaps[0]
             .values()
             .max()
             .expect("ERROR could not get max value of histogram");
+        debug!("Max value of histogram: {}", max_value);
+        // only do the code below in debug mode
+        if log::log_enabled!(log::Level::Debug) {
+            // debug the length and accuracy of the hashmap with the highest count
+            let (length, accuracy) = hashmap
+                .iter()
+                .max_by_key(|(_key, value)| *value)
+                .expect("ERROR could not get max value of histogram")
+                .0;
+            debug!("Length: {}, Accuracy: {} of max value", length, accuracy);
+        }
         // Iterate over the hashmap to fill in bins and color pixels accordingly
         for ((length, accuracy), count) in hashmap {
             let intensity = (*count as f32 / *max_value as f32 * 255.0) as u8;
             let color = match chosen_color[0] {
-                Color::Red => if background == BackGround::White { Rgb([255, 255 - intensity, 255 - intensity]) } else { Rgb([intensity, 0, 0]) },
-                Color::Green => if background == BackGround::White { Rgb([255 - intensity, 255, 255 - intensity]) } else { Rgb([0, intensity, 0]) },
-                Color::Blue => if background == BackGround::White { Rgb([255 - intensity, 255 - intensity, 255]) } else { Rgb([0, 0, intensity]) },
-                Color::Purple => if background == BackGround::White { Rgb([255, 255 - intensity, 255]) } else { Rgb([intensity, 0, intensity]) },
-                Color::Yellow => if background == BackGround::White { Rgb([255, 255, 255 - intensity]) } else { Rgb([intensity, intensity, 0]) },
+                Color::Red => {
+                    if background == BackGround::White {
+                        Rgb([255, 255 - intensity, 255 - intensity])
+                    } else {
+                        Rgb([intensity, 0, 0])
+                    }
+                }
+                Color::Green => {
+                    if background == BackGround::White {
+                        Rgb([255 - intensity, 255, 255 - intensity])
+                    } else {
+                        Rgb([0, intensity, 0])
+                    }
+                }
+                Color::Blue => {
+                    if background == BackGround::White {
+                        Rgb([255 - intensity, 255 - intensity, 255])
+                    } else {
+                        Rgb([0, 0, intensity])
+                    }
+                }
+                Color::Purple => {
+                    if background == BackGround::White {
+                        Rgb([255, 255 - intensity, 255])
+                    } else {
+                        Rgb([intensity, 0, intensity])
+                    }
+                }
+                Color::Yellow => {
+                    if background == BackGround::White {
+                        Rgb([255, 255, 255 - intensity])
+                    } else {
+                        Rgb([intensity, intensity, 0])
+                    }
+                }
             };
             image.put_pixel(*length as u32, *accuracy as u32, color);
         }
@@ -227,7 +278,12 @@ fn plot_heatmap(
                 arr + hashmaps[1].get(&(*length, *accuracy)).unwrap_or(&default)
                     + hashmaps[2].get(&(*length, *accuracy)).unwrap_or(&default)
             };
-            let arr: [u8; 3] = summed_arr.clone().into_raw_vec_and_offset().0.try_into().unwrap();
+            let arr: [u8; 3] = summed_arr
+                .clone()
+                .into_raw_vec_and_offset()
+                .0
+                .try_into()
+                .unwrap();
             // Use the summed RGB arrays to fill in the pixel
             image.put_pixel(*length as u32, *accuracy as u32, Rgb(arr));
         }
@@ -257,6 +313,7 @@ fn test_single_file() {
         "test-data/small-test-phased.bam",
         4,
         transform::transform_accuracy_percent,
+        false,
     );
     plot_heatmap(
         vec![hashmap],
@@ -269,12 +326,31 @@ fn test_single_file() {
 }
 
 #[test]
+fn test_single_file_ubam() {
+    let hashmap = extract_data::bam_to_hashmap(
+        "test-data/small-test-phased.bam",
+        4,
+        transform::transform_accuracy_percent,
+        true,
+    );
+    plot_heatmap(
+        vec![hashmap],
+        BackGround::Black,
+        vec![Color::Purple],
+        "accuracy_heatmap_percent_on_black_ubam.png",
+        transform::transform_accuracy_percent,
+        false,
+    );
+}
+
+#[test]
 #[ignore]
 fn test_single_file_from_de() {
     let hashmap = extract_data::bam_to_hashmap(
         "test-data/small-test-phased_de.bam",
         4,
         transform::transform_accuracy_percent,
+        false,
     );
     plot_heatmap(
         vec![hashmap],
@@ -292,6 +368,7 @@ fn test_single_file_black_phred() {
         "test-data/small-test-phased.bam",
         4,
         transform::transform_accuracy_phred,
+        false,
     );
     plot_heatmap(
         vec![hashmap],
@@ -309,6 +386,7 @@ fn test_single_file_phred() {
         "test-data/small-test-phased.bam",
         4,
         transform::transform_accuracy_phred,
+        false,
     );
     plot_heatmap(
         vec![hashmap],
