@@ -14,6 +14,7 @@ allow = [
     "MPL-2.0",
     "CDLA-Permissive-2.0",
     "Unicode-DFS-2016",  # Unicode DFS 2016 - used by a transitive crate
+    "NCSA",              # University of Illinois/NCSA (permissive) - via rav1e/ravif
 ]
 confidence-threshold = 0.8
 
